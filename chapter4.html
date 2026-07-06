@@ -1,0 +1,2609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <title>第四章 · 梦醒时分</title>
+    <style>
+        /* ============================================================
+                   完整样式
+                   ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Noto Serif SC', 'PingFang SC', 'Microsoft YaHei', serif;
+            background: #0b0e14;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #story-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 800;
+            background: #0b0e14;
+            opacity: 1;
+            visibility: visible;
+        }
+        #story-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: opacity 0.8s ease, filter 1s ease;
+            opacity: 0;
+            z-index: 0;
+            background-color: #0b0e14;
+        }
+        #story-bg.loaded {
+            opacity: 1;
+        }
+        #story-bg.blur {
+            filter: blur(8px);
+        }
+        #character-layer {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+            width: 260px;
+            max-height: 60%;
+            object-fit: contain;
+            pointer-events: none;
+            opacity: 0;
+            transition: left 1s ease, bottom 1s ease, opacity 1.2s ease;
+            animation: none;
+        }
+        #character-layer.loaded {
+            opacity: 0.85;
+            animation: floatCharacter 3.5s ease-in-out infinite;
+        }
+        #character-layer.awaken {
+            left: 3% !important;
+            transform: translateX(0) !important;
+            bottom: 18%;
+            width: 320px;
+            opacity: 0.95;
+            animation: floatCharacterLeft 3.5s ease-in-out infinite;
+        }
+        @keyframes floatCharacter {
+            0%,
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+            50% {
+                transform: translateX(-50%) translateY(-10px);
+            }
+        }
+        @keyframes floatCharacterLeft {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        #character-layer-right {
+            position: absolute;
+            bottom: 22%;
+            right: 3%;
+            z-index: 1;
+            width: 280px;
+            max-height: 55%;
+            object-fit: contain;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+            animation: none;
+            transform: scaleX(-1) translateX(0);
+        }
+        #character-layer-right.show {
+            opacity: 0.9;
+            animation: floatCharacterRight 3.5s ease-in-out infinite;
+        }
+        @keyframes floatCharacterRight {
+            0%,
+            100% {
+                transform: scaleX(-1) translateY(0);
+            }
+            50% {
+                transform: scaleX(-1) translateY(-10px);
+            }
+        }
+        #story-scene::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60%;
+            background: linear-gradient(to top, rgba(10, 14, 26, 0.78) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        #story-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px 28px 50px 28px;
+            z-index: 2;
+            max-height: 55%;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            cursor: pointer;
+            transition: all 0.8s ease;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        #story-panel::-webkit-scrollbar {
+            width: 3px;
+        }
+        #story-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #story-panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+        #story-panel.awaken {
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(4px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 20px 28px 30px 28px;
+            max-height: 45%;
+        }
+        #speaker-label {
+            display: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 215, 150, 0.9);
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+            transition: color 0.3s ease;
+        }
+        #story-panel.awaken #speaker-label {
+            display: block;
+        }
+        #story-panel.awaken .story-line {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 8px 16px;
+            border-radius: 12px;
+            border-left: 3px solid rgba(255, 215, 150, 0.3);
+            margin-bottom: 2px;
+            backdrop-filter: blur(2px);
+        }
+        #story-panel.awaken .story-line.show {
+            background: rgba(255, 255, 255, 0.12);
+        }
+        #story-panel.awaken .story-line.speaker-yandong {
+            border-left-color: rgba(150, 200, 255, 0.5);
+        }
+        #story-panel.awaken .story-line.speaker-yunling {
+            border-left-color: rgba(200, 220, 255, 0.6);
+        }
+        #story-panel.awaken .story-line.speaker-zhenni {
+            border-left-color: #ffb8a0;
+        }
+        #story-panel.awaken .story-line.speaker-shaya {
+            border-left-color: #ff8a65;
+        }
+        #story-panel.awaken .story-line.speaker-mukaska {
+            border-left-color: #ff6b6b;
+        }
+        #story-panel.awaken .story-line.speaker-xiaopang {
+            border-left-color: #ff6b6b;
+        }
+        #story-panel.awaken .story-line.speaker-mother {
+            border-left-color: #a0d0ff;
+        }
+        #story-panel.awaken .story-line.speaker-father {
+            border-left-color: #b8a0d0;
+        }
+        #story-panel.awaken .story-line.speaker-teacher {
+            border-left-color: #80d0a0;
+        }
+        #story-panel.awaken .story-line.speaker-xiaochen {
+            border-left-color: #80b0d0;
+        }
+        #story-panel.awaken .story-line.speaker-xiaoyu {
+            border-left-color: #ffb8d0;
+        }
+        #story-panel.awaken .story-line.speaker-wang {
+            border-left-color: #d0b080;
+        }
+        #story-chapter-label {
+            font-size: 12px;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.35);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        }
+        #story-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 60px;
+        }
+        .story-line {
+            font-size: 17px;
+            line-height: 1.9;
+            color: rgba(255, 255, 255, 0.92);
+            text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            letter-spacing: 0.5px;
+            font-weight: 400;
+            padding: 2px 0;
+        }
+        .story-line.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #choice-area {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        #choice-area.show {
+            display: flex;
+        }
+        .choice-btn {
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 215, 150, 0.3);
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(4px);
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 16px;
+            font-family: 'Noto Serif SC', serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+        .choice-btn:hover {
+            background: rgba(255, 215, 150, 0.15);
+            border-color: rgba(255, 215, 150, 0.6);
+            transform: scale(1.02);
+        }
+        #story-footer {
+            position: absolute;
+            bottom: 16px;
+            left: 0;
+            width: 100%;
+            z-index: 3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+        #story-progress {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.25);
+            letter-spacing: 2px;
+            font-weight: 300;
+            pointer-events: none;
+        }
+        #story-ctrl-btn {
+            pointer-events: auto;
+            padding: 7px 28px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            font-family: 'Noto Serif SC', serif;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            letter-spacing: 2px;
+            opacity: 0;
+            visibility: hidden;
+        }
+        #story-ctrl-btn.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        #story-ctrl-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+        }
+        #story-ctrl-btn.next-chapter {
+            color: rgba(255, 215, 150, 0.7);
+            border-color: rgba(255, 215, 150, 0.2);
+        }
+        #transition-tip {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 18px;
+            letter-spacing: 4px;
+            text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 16px 32px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            pointer-events: none;
+            animation: fadeInOut 2s ease forwards;
+        }
+        #transition-tip.show {
+            display: block;
+        }
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.95);
+            }
+            20% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            80% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.95);
+            }
+        }
+        #return-menu-btn {
+            display: none;
+            pointer-events: auto;
+            padding: 10px 36px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 40px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(8px);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 15px;
+            font-family: 'Noto Serif SC', serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 3px;
+            margin-top: 12px;
+        }
+        #return-menu-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
+            transform: scale(1.04);
+        }
+        #return-menu-btn.show {
+            display: inline-block;
+        }
+        #tap-hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.15);
+            letter-spacing: 2px;
+            font-weight: 300;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            margin-top: 4px;
+        }
+        #tap-hint.show {
+            opacity: 1;
+        }
+
+        /* 震动 */
+        @keyframes shakeScene {
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            10% {
+                transform: translate(-8px, 4px) rotate(-0.5deg);
+            }
+            20% {
+                transform: translate(6px, -6px) rotate(0.5deg);
+            }
+            30% {
+                transform: translate(-4px, 8px) rotate(-0.3deg);
+            }
+            40% {
+                transform: translate(10px, -2px) rotate(0.4deg);
+            }
+            50% {
+                transform: translate(-6px, 6px) rotate(-0.6deg);
+            }
+            60% {
+                transform: translate(4px, -4px) rotate(0.3deg);
+            }
+            70% {
+                transform: translate(-10px, 2px) rotate(-0.2deg);
+            }
+            80% {
+                transform: translate(8px, -8px) rotate(0.5deg);
+            }
+            90% {
+                transform: translate(-2px, 10px) rotate(-0.4deg);
+            }
+        }
+        #story-scene.shaking {
+            animation: shakeScene 0.6s ease-in-out 3;
+        }
+        #story-scene.shaking-strong {
+            animation: shakeScene 0.4s ease-in-out 5;
+        }
+        @keyframes swayChar {
+            0%,
+            100% {
+                transform: translateX(0) rotate(0deg);
+            }
+            25% {
+                transform: translateX(-6px) rotate(-2deg);
+            }
+            75% {
+                transform: translateX(6px) rotate(2deg);
+            }
+        }
+        #character-layer.swaying {
+            animation: swayChar 0.5s ease-in-out 4;
+        }
+        #character-layer-right.swaying {
+            animation: swayChar 0.5s ease-in-out 4;
+        }
+
+        /* 死亡转场动画 */
+        #death-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+            background: #000;
+            transition: none;
+        }
+        #death-overlay.active {
+            animation: deathBlink 3.5s ease-in-out forwards;
+        }
+        @keyframes deathBlink {
+            0% {
+                opacity: 0;
+                clip-path: inset(0 0 0 0);
+            }
+            10% {
+                opacity: 0;
+                clip-path: inset(0 0 0 0);
+            }
+            15% {
+                opacity: 1;
+                clip-path: inset(0 0 0 0);
+            }
+            50% {
+                opacity: 1;
+                clip-path: inset(0 0 0 0);
+            }
+            55% {
+                opacity: 1;
+                clip-path: inset(100% 0 0 0);
+            }
+            60% {
+                opacity: 1;
+                clip-path: inset(100% 0 0 0);
+            }
+            100% {
+                opacity: 0;
+                clip-path: inset(100% 0 0 0);
+            }
+        }
+        #death-overlay .dots {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 28px;
+            letter-spacing: 12px;
+            opacity: 0;
+            animation: dotsAppear 1.2s ease 1.5s forwards;
+        }
+        @keyframes dotsAppear {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        /* 战斗系统 */
+        #battle-container {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(2px);
+            flex-direction: column;
+            padding: 10px 16px 20px 16px;
+        }
+        #battle-container.show {
+            display: flex;
+        }
+        #battle-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.4;
+            z-index: -1;
+        }
+        #battle-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 4px 0;
+            z-index: 2;
+            flex-shrink: 0;
+        }
+        #battle-allies {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            flex: 2;
+            min-width: 200px;
+        }
+        #battle-enemy {
+            flex: 1;
+            min-width: 100px;
+            text-align: right;
+        }
+        .battle-unit {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            border-radius: 10px;
+            padding: 6px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            min-width: 70px;
+            flex: 1;
+            max-width: 140px;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+        .battle-unit.selectable {
+            cursor: pointer;
+            border-color: rgba(255, 215, 150, 0.2);
+        }
+        .battle-unit.selectable:hover {
+            background: rgba(255, 215, 150, 0.12);
+            border-color: rgba(255, 215, 150, 0.4);
+            transform: scale(1.02);
+        }
+        .battle-unit.selected {
+            background: rgba(255, 215, 150, 0.18);
+            border-color: rgba(255, 215, 150, 0.6);
+            box-shadow: 0 0 20px rgba(255, 215, 150, 0.1);
+        }
+        .battle-unit .unit-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+            letter-spacing: 1px;
+        }
+        .battle-unit .unit-hp {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+        .battle-unit .unit-hp .hp-bar {
+            display: inline-block;
+            width: 50px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+        .battle-unit .unit-hp .hp-bar .hp-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #6bcb8a, #4ecdc4);
+        }
+        .battle-unit .unit-hp .hp-bar .hp-fill.low {
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+        }
+        .battle-unit .unit-hp .hp-bar .hp-fill.enemy-hp {
+            background: linear-gradient(90deg, #ff6b6b, #d63031);
+        }
+        .battle-unit.enemy-unit {
+            border-color: rgba(255, 80, 80, 0.2);
+            background: rgba(80, 0, 0, 0.25);
+        }
+        .battle-unit.enemy-unit .unit-name {
+            color: rgba(255, 150, 150, 0.9);
+        }
+        #battle-middle {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 2;
+            min-height: 100px;
+            padding: 6px 0;
+        }
+        #battle-hand {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 8px 0;
+        }
+        .battle-card {
+            padding: 8px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(6px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 80px;
+            max-width: 120px;
+            flex: 1;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            font-family: 'Noto Serif SC', serif;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .battle-card .card-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            background: #1a2233;
+        }
+        .battle-card .card-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .battle-card .card-desc {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .battle-card.type-attack .card-avatar {
+            border-color: #ff6b6b;
+        }
+        .battle-card.type-defend .card-avatar {
+            border-color: #4ecdc4;
+        }
+        .battle-card.type-heal .card-avatar {
+            border-color: #6bcb8a;
+        }
+        .battle-card.type-special .card-avatar {
+            border-color: #feca57;
+        }
+        .battle-card:hover:not(.disabled) {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 215, 150, 0.3);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+        }
+        .battle-card.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        #battle-log-area {
+            z-index: 2;
+            padding: 4px 8px;
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            min-height: 28px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+        #battle-bottom {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            z-index: 2;
+            padding: 6px 0;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        #battle-bottom .battle-action-btn {
+            padding: 8px 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(6px);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            font-family: 'Noto Serif SC', serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 2px;
+        }
+        #battle-bottom .battle-action-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+        }
+        #battle-bottom .battle-action-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        #battle-select-hint {
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-align: center;
+            padding: 4px 0;
+            z-index: 2;
+        }
+        @keyframes battleShake {
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+            10% {
+                transform: translate(-6px, 4px);
+            }
+            20% {
+                transform: translate(6px, -4px);
+            }
+            30% {
+                transform: translate(-4px, 6px);
+            }
+            40% {
+                transform: translate(4px, -6px);
+            }
+            50% {
+                transform: translate(-6px, -2px);
+            }
+            60% {
+                transform: translate(6px, 2px);
+            }
+            70% {
+                transform: translate(-2px, 6px);
+            }
+            80% {
+                transform: translate(2px, -6px);
+            }
+            90% {
+                transform: translate(-4px, 2px);
+            }
+        }
+        #story-scene.battle-shake {
+            animation: battleShake 0.4s ease-in-out 4;
+        }
+        #character-layer.battle-sway {
+            animation: swayChar 0.3s ease-in-out 6;
+        }
+        #character-layer-right.battle-sway {
+            animation: swayChar 0.3s ease-in-out 6;
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            #story-panel {
+                padding: 20px 18px 44px 18px;
+            }
+            #story-panel.awaken {
+                padding: 16px 18px 30px 18px;
+            }
+            .story-line {
+                font-size: 15px;
+                line-height: 1.8;
+            }
+            #character-layer {
+                width: 200px;
+                bottom: 22%;
+            }
+            #character-layer.awaken {
+                width: 260px !important;
+                bottom: 20%;
+                left: 2% !important;
+            }
+            #character-layer-right {
+                width: 200px;
+                bottom: 24%;
+                right: 2%;
+            }
+            .battle-unit {
+                padding: 4px 8px;
+                min-width: 50px;
+                max-width: 100px;
+            }
+            .battle-card {
+                padding: 6px 10px;
+                min-width: 60px;
+                max-width: 100px;
+                font-size: 11px;
+            }
+            .battle-card .card-avatar {
+                width: 36px;
+                height: 36px;
+            }
+            #battle-container {
+                padding: 6px 8px 12px 8px;
+            }
+        }
+        @media (max-width: 360px) {
+            #character-layer {
+                width: 160px;
+                bottom: 26%;
+            }
+            #character-layer.awaken {
+                width: 200px !important;
+                bottom: 24%;
+                left: 1% !important;
+            }
+            #character-layer-right {
+                width: 150px;
+                bottom: 28%;
+                right: 1%;
+            }
+            .battle-card {
+                min-width: 50px;
+                max-width: 80px;
+                font-size: 10px;
+            }
+            .battle-card .card-avatar {
+                width: 30px;
+                height: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 剧情场景 -->
+    <div id="story-scene">
+        <div id="story-bg"></div>
+        <img id="character-layer" src="character/lin_xiaoning.png" alt="林小宁" />
+        <img id="character-layer-right" src="" alt="右侧角色" />
+        <div id="transition-tip">✦ 即将前往白墨瑟尔城 ✦</div>
+
+        <div id="story-panel">
+            <div id="story-chapter-label">✦ 第四章 · 梦醒时分</div>
+            <div id="speaker-label"></div>
+            <div id="story-lines"></div>
+            <div id="choice-area"></div>
+            <div id="tap-hint">▼ 点击继续</div>
+            <button id="return-menu-btn">回到主菜单</button>
+        </div>
+
+        <div id="story-footer">
+            <span id="story-progress">1 / 80</span>
+            <button id="story-ctrl-btn">继续 →</button>
+        </div>
+
+        <!-- 死亡转场遮罩 -->
+        <div id="death-overlay">
+            <div class="dots">✦ ✦ ✦</div>
+        </div>
+
+        <!-- 战斗容器 -->
+        <div id="battle-container">
+            <div id="battle-bg"></div>
+            <div id="battle-top">
+                <div id="battle-allies"></div>
+                <div id="battle-enemy"></div>
+            </div>
+            <div id="battle-middle">
+                <div id="battle-select-hint">选择一名角色 · 再选择卡牌</div>
+                <div id="battle-hand"></div>
+            </div>
+            <div id="battle-log-area">⚔️ 战斗开始！</div>
+            <div id="battle-bottom">
+                <button class="battle-action-btn" id="battle-end-turn" disabled>结束回合</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            //  配置
+            // ============================================================
+            var PHOTO_PREFIX = 'photo4/';
+            var CHARACTER_DIR = 'character/';
+            var MUSIC_DESERT = 'music/005.mp3';
+            var MUSIC_BATTLE = 'music/003.mp3';
+            var MUSIC_REAL = 'music/006.mp3';
+            var MUSIC_TEMPLE = 'music/007.mp3';
+
+            var CHARACTERS = {
+                lin_xiaoning: 'lin_xiaoning.png',
+                yandong: 'yandong.png',
+                yunling: 'yunling.png',
+                zhenni: 'zhenni.png',
+                shaya: 'shaya.png',
+                mukaska: 'mukaska.png',
+                nan: 'nan.png',
+                mm: 'mm.png',
+                bb: 'bb.png',
+                lin: 'lin.png',
+                chen: 'chen.png',
+                yu: 'yu.png',
+                xiaopang: 'xiaopang.png',
+                aqiang: 'aqiang.png',
+                ali: 'ali.png',
+                wang: 'wang.png'
+            };
+
+            var REAL_CHAR_MAP = {
+                'mother': 'mm',
+                'father': 'bb',
+                'teacher': 'lin',
+                'xiaochen': 'chen',
+                'xiaoyu': 'yu',
+                'xiaopang': 'xiaopang',
+                'wang': 'wang',
+                'aqiang': 'aqiang',
+                'ali': 'ali'
+            };
+
+            // ============================================================
+            //  剧情数据 (80段, 40张图片)
+            // ============================================================
+            var CHAPTER_DATA = [
+                // === 沙漠篇 001-014 (图片001-007) ===
+                { idx: 0, lines: ['五人走出古城，在沙漠边缘坐下休息。沙牙｜前面就是沙漠的尽头了。'], isAwaken: true, rightCharacter: 'shaya',
+                    img: 1 },
+                { idx: 1, lines: ['林小宁｜终于要走出来了……这片沙漠，比我想象的还要大。'], isAwaken: true, isDialogue: true,
+                    img: 1 },
+                { idx: 2, lines: ['云翎｜等等……有什么东西在靠近。我感觉到一股熟悉的气息。'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'yunling', img: 2 },
+                { idx: 3, lines: ['岩咚｜前面有动静。大家小心。'], isAwaken: true, isDialogue: true, rightCharacter: 'yandong',
+                    img: 2 },
+                { idx: 4, lines: ['地面开始震动，黄沙中卷起一股黑色的雾气。'], isAwaken: true, img: 3 },
+                { idx: 5, lines: ['珍妮｜那、那是……姆卡斯卡？！它怎么还活着！'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'zhenni', img: 3 },
+                { idx: 6, lines: ['岩咚｜这家伙……比上次见到的时候大了一倍。'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'yandong', img: 4 },
+                { idx: 7, lines: ['林小宁｜（握紧拳头）……一起上吧。无论它变成什么样，我们都不会退缩。'], isAwaken: true,
+                    isDialogue: true, img: 4 },
+                // === 沙漠战斗 008-014 (图片005-007) ===
+                { idx: 8, lines: ['五人摆开阵型，面对庞大的姆卡斯卡精灵兽。'], isAwaken: true, isBattleStart: true,
+                    enemyName: '姆卡斯卡精灵兽', isDesertBattle: true },
+                { idx: 9, lines: ['岩咚｜我来正面拖住它！你们从侧面攻击！'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'yandong', isBattle: true, enemyName: '姆卡斯卡精灵兽', isDesertBattle: true },
+                { idx: 10, lines: ['沙牙｜它的弱点在腹部！我看到了！'], isAwaken: true, isDialogue: true, rightCharacter: 'shaya',
+                    isBattle: true, enemyName: '姆卡斯卡精灵兽', isDesertBattle: true },
+                { idx: 11, lines: ['云翎｜大家小心……它要发动攻击了！'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'yunling', isBattle: true, enemyName: '姆卡斯卡精灵兽', isDesertBattle: true },
+                { idx: 12, lines: ['林小宁｜（被击中，倒下）……不行……它太强了……'], isAwaken: true, isDialogue: true,
+                    isBattleEnd: true, isDesertBattle: true },
+                { idx: 13, lines: ['画面模糊……伙伴们的呼喊声越来越远……'], isAwaken: true, isDeathTransition: true },
+                { idx: 14, lines: ['……'], isAwaken: true, isDeathTransition: true },
+                // === 死亡转场 015-016 (图片008-009) 由JS控制 ===
+                // === 现实·早晨 017-024 (图片010-012) ===
+                { idx: 15, lines: ['闹钟声在耳边响起。母亲｜小宁！起床了！再不起来又要迟到了！'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'mother', img: 10 },
+                { idx: 16, lines: ['林小宁揉着眼睛坐起来，发现自己正躺在自己的床上，而不是沙漠。'], isAwaken: true, img: 10 },
+                { idx: 17, lines: ['母亲｜快起来！早饭要凉了！'], isAwaken: true, isDialogue: true, rightCharacter: 'mother',
+                    img: 11 },
+                { idx: 18, lines: ['林小宁｜……来了。'], isAwaken: true, isDialogue: true, img: 11 },
+                { idx: 19, lines: ['他穿上校服，走到餐桌前。早餐冒着热气。'], isAwaken: true, img: 12 },
+                { idx: 20, lines: ['母亲｜今天有考试，别忘了带文具。'], isAwaken: true, isDialogue: true, rightCharacter: 'mother',
+                    img: 12 },
+                // === 上学路上 021-028 (图片013-015) ===
+                { idx: 21, lines: ['他背起书包走出家门。阳光刺眼，和云端的柔和光芒完全不同。'], isAwaken: true, img: 13 },
+                { idx: 22, lines: ['走在上学的路上，街道熟悉而陌生。他还在想沙漠里的事情——那是梦吗？'], isAwaken: true, img: 13 },
+                { idx: 23, lines: ['路边的早餐摊冒着热气，学生们三三两两走在一起。'], isAwaken: true, img: 14 },
+                { idx: 24, lines: ['他低着头，一个人走在人群里。'], isAwaken: true, img: 14 },
+                { idx: 25, lines: ['他抬头看了看天空——云在飘。和云端那些云，是一样的吗？'], isAwaken: true, img: 15 },
+                { idx: 26, lines: ['走到校门口，他停下脚步。大门敞开，同学们陆续走进。'], isAwaken: true, img: 15 },
+                // === 学校·教室 029-034 (图片016-018) ===
+                { idx: 27, lines: ['走进校门，同学们三三两两说笑着，他一个人低着头快步走过。'], isAwaken: true, img: 16 },
+                { idx: 28, lines: ['他走进教室，找到自己的座位坐下。'], isAwaken: true, img: 16 },
+                { idx: 29, lines: ['教室里，班主任林老师站在讲台上。林老师｜林小宁，你最近状态不太好啊。'], isAwaken: true,
+                    isDialogue: true, rightCharacter: 'teacher', img: 17 },
+                { idx: 30, lines: ['林小宁｜……对不起，老师。我昨晚没睡好。'], isAwaken: true, isDialogue: true, img: 17 },
+                { idx: 31, lines: ['他坐回座位上，同桌小陈递过来一张纸条。小陈｜你没事吧？脸色好差。'], isAwaken: true,
+                    isDialogue: true, rightCharacter: 'xiaochen', img: 18 },
+                { idx: 32, lines: ['他摇摇头，把纸条收起来。'], isAwaken: true, img: 18 },
+                // === 上课·走神 035-040 (图片019-020) ===
+                { idx: 33, lines: ['他翻开课本，眼睛却不由自主地望向窗外。云在飘。'], isAwaken: true, img: 19 },
+                { idx: 34, lines: ['课堂上，老师的声音越来越远，他又想起了沙漠里的战斗。'], isAwaken: true, img: 19 },
+                { idx: 35, lines: ['林小宁｜（轻声）岩咚……云翎……'], isAwaken: true, isDialogue: true, img: 20 },
+                { idx: 36, lines: ['同桌小陈｜（小声）你刚才说什么？'], isAwaken: true, isDialogue: true, rightCharacter: 'xiaochen',
+                    img: 20 },
+                // === 走廊·课间 041-044 (图片021-022) ===
+                { idx: 37, lines: ['课间，他一个人站在走廊上，看着远处的天空发呆。'], isAwaken: true, img: 21 },
+                { idx: 38, lines: ['小雨从身边走过，微微点头致意。他张了张嘴，却什么都没说出来。'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'xiaoyu', img: 21 },
+                { idx: 39, lines: ['他心想：她不会理解我的……连我自己都不理解发生了什么。'], isAwaken: true, img: 22 },
+                { idx: 40, lines: ['他回到座位上，小陈拍了拍他的肩膀。小陈｜放学一起走？'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'xiaochen', img: 22 },
+                // === 体育课 045-048 (图片023-024) ===
+                { idx: 41, lines: ['体育课，王老师让大家绕操场跑三圈。'], isAwaken: true, isDialogue: true, rightCharacter: 'wang',
+                    img: 23 },
+                { idx: 42, lines: ['王老师｜林小宁，别走神！跑起来！'], isAwaken: true, isDialogue: true, rightCharacter: 'wang',
+                    img: 23 },
+                { idx: 43, lines: ['他咬着牙跑完，坐在操场边上喘气。汗水滴在草地上。'], isAwaken: true, img: 24 },
+                { idx: 44, lines: ['他看着天空发呆——云端的世界，真的存在吗？'], isAwaken: true, img: 24 },
+                // === 午休 049-052 (图片025-026) ===
+                { idx: 45, lines: ['午休时间，他一个人坐在操场边的台阶上。'], isAwaken: true, img: 25 },
+                { idx: 46, lines: ['远处同学们在打闹，他像是一个局外人。'], isAwaken: true, img: 25 },
+                { idx: 47, lines: ['他躺下来，看着天空中缓缓移动的云朵。'], isAwaken: true, img: 26 },
+                { idx: 48, lines: ['那些云……和他在云端见到的一样吗？'], isAwaken: true, img: 26 },
+                // === 下午课 053-056 (图片027-028) ===
+                { idx: 49, lines: ['下午最后一节课，他完全听不进去，反复想着同一个问题。'], isAwaken: true, img: 27 },
+                { idx: 50, lines: ['云端的那些事……岩咚、云翎、珍妮、沙牙……他们都是真的吗？'], isAwaken: true, img: 27 },
+                { idx: 51, lines: ['他趴在桌上，看着窗外的天空。'], isAwaken: true, img: 28 },
+                { idx: 52, lines: ['放学铃声快要响了，他慢慢收拾好书包。'], isAwaken: true, img: 28 },
+                // === 放学 057-060 (图片029-030) ===
+                { idx: 53, lines: ['下课铃响了，他慢慢收拾书包。'], isAwaken: true, img: 29 },
+                { idx: 54, lines: ['小陈｜明天见！'], isAwaken: true, isDialogue: true, rightCharacter: 'xiaochen',
+                    img: 29 },
+                { idx: 55, lines: ['走出校门，天空灰蒙蒙的，像是要下雨了。'], isAwaken: true, img: 30 },
+                { idx: 56, lines: ['他拉了拉书包带子，一个人往家的方向走去。'], isAwaken: true, img: 30 },
+                // === 小胖战斗 061-068 (图片031-034) ===
+                { idx: 57, lines: ['小胖｜哟，这不是林小宁吗？'], isAwaken: true, isDialogue: true, rightCharacter: 'xiaopang',
+                    img: 31 },
+                { idx: 58, lines: ['跟班1｜听说你最近老是发呆，是不是脑子坏掉了？'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'xiaopang', img: 31 },
+                { idx: 59, lines: ['林小宁｜……让开。我没心情跟你们纠缠。'], isAwaken: true, isDialogue: true, img: 31 },
+                { idx: 60, lines: ['小胖｜不让又怎样？你以为你是谁？'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'xiaopang', isBattleStart: true, enemyName: '小胖', isRealBattle: true },
+                { idx: 61, lines: ['（战斗过程）林小宁咬着牙，奋力还击。'], isAwaken: true, isBattle: true, enemyName: '小胖',
+                    isRealBattle: true },
+                { idx: 62, lines: ['小胖｜（擦掉嘴角的血）……算你狠。'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'xiaopang', isBattleEnd: true, isRealBattle: true, img: 33 },
+                { idx: 63, lines: ['小胖｜以后见你一次打你一次！'], isAwaken: true, isDialogue: true, rightCharacter: 'xiaopang',
+                    img: 34 },
+                { idx: 64, lines: ['三人扬长而去。林小宁坐在原地，嘴角渗出血丝。'], isAwaken: true, img: 34 },
+                // === 回家 069-074 (图片035-037) ===
+                { idx: 65, lines: ['他一瘸一拐地走回家，路上的人投来异样的目光。'], isAwaken: true, img: 35 },
+                { idx: 66, lines: ['他低着头，加快脚步。'], isAwaken: true, img: 35 },
+                { idx: 67, lines: ['终于到了家门口，他深吸一口气。'], isAwaken: true, img: 36 },
+                { idx: 68, lines: ['推开门，家里空无一人。父亲还在加班，母亲还没回来。'], isAwaken: true, img: 36 },
+                { idx: 69, lines: ['他走进自己的房间，关上门。'], isAwaken: true, img: 37 },
+                { idx: 70, lines: ['他坐在床边，沉默了很久。然后，眼泪无声地滑落。'], isAwaken: true, img: 37 },
+                // === 父亲安慰 075-076 (图片038) ===
+                { idx: 71, lines: ['父亲推开门，看到儿子蜷缩在床上。父亲｜小宁……怎么了？'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'father', img: 38 },
+                { idx: 72, lines: ['林小宁｜（带着哭腔）爸……我做了一个很长的梦。', '父亲｜梦醒了就好。无论发生什么，家永远在这里。'],
+                    isAwaken: true, isDialogue: true, img: 38 },
+                // === 哭着睡着 077-078 (图片039) ===
+                { idx: 73, lines: ['他躺下，闭上眼睛。风的声音……云的味道……'], isAwaken: true, img: 39 },
+                { idx: 74, lines: ['他轻声说｜……我想回去。'], isAwaken: true, isDialogue: true, img: 39 },
+                // === 回到主殿 079-080 (图片040) ===
+                { idx: 75, lines: ['林小宁缓缓睁开眼睛，发现自己正躺在白墨瑟尔城的主殿中。'], isAwaken: true, img: 40 },
+                { idx: 76, lines: ['岩咚｜（松了口气）你终于醒了。'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'yandong', img: 40 },
+                { idx: 77, lines: ['云翎｜（微笑）你已经睡了三天了，林小宁。'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'yunling', img: 40 },
+                { idx: 78, lines: ['珍妮｜（眼眶红红的）吓死我们了！我还以为你醒不过来了！'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'zhenni', img: 40 },
+                { idx: 79, lines: ['沙牙｜（站在一旁，沉默片刻）……你回来了就好。'], isAwaken: true, isDialogue: true,
+                    rightCharacter: 'shaya', img: 40 }
+            ];
+
+            // 补充默认属性
+            CHAPTER_DATA.forEach(function(item) {
+                if (item.isDialogue === undefined) item.isDialogue = item.lines.some(function(line) { return line
+                        .indexOf('|') !== -1; });
+                if (item.isAwaken === undefined) item.isAwaken = false;
+                if (item.isBattle === undefined) item.isBattle = false;
+                if (item.isBattleStart === undefined) item.isBattleStart = false;
+                if (item.isBattleEnd === undefined) item.isBattleEnd = false;
+                if (item.isDesertBattle === undefined) item.isDesertBattle = false;
+                if (item.isRealBattle === undefined) item.isRealBattle = false;
+                if (item.isDeathTransition === undefined) item.isDeathTransition = false;
+                if (item.rightCharacter === undefined) item.rightCharacter = null;
+                if (item.img === undefined) item.img = 1;
+            });
+
+            // ============================================================
+            //  DOM 引用
+            // ============================================================
+            var storyScene = document.getElementById('story-scene');
+            var storyBg = document.getElementById('story-bg');
+            var characterLayer = document.getElementById('character-layer');
+            var characterRight = document.getElementById('character-layer-right');
+            var storyLines = document.getElementById('story-lines');
+            var storyChapter = document.getElementById('story-chapter-label');
+            var storyProgress = document.getElementById('story-progress');
+            var storyCtrlBtn = document.getElementById('story-ctrl-btn');
+            var tapHint = document.getElementById('tap-hint');
+            var storyPanel = document.getElementById('story-panel');
+            var returnMenuBtn = document.getElementById('return-menu-btn');
+            var speakerLabel = document.getElementById('speaker-label');
+            var choiceArea = document.getElementById('choice-area');
+            var transitionTip = document.getElementById('transition-tip');
+            var deathOverlay = document.getElementById('death-overlay');
+
+            var battleContainer = document.getElementById('battle-container');
+            var battleBg = document.getElementById('battle-bg');
+            var battleAllies = document.getElementById('battle-allies');
+            var battleEnemy = document.getElementById('battle-enemy');
+            var battleHand = document.getElementById('battle-hand');
+            var battleLog = document.getElementById('battle-log-area');
+            var battleHint = document.getElementById('battle-select-hint');
+            var battleEndTurn = document.getElementById('battle-end-turn');
+
+            // ============================================================
+            //  音频系统
+            // ============================================================
+            var gameAudio = null,
+                battleAudio = null,
+                realAudio = null,
+                templeAudio = null;
+            var currentAudio = null;
+
+            function initAudio() {
+                try {
+                    gameAudio = new Audio(MUSIC_DESERT);
+                    gameAudio.loop = true;
+                    gameAudio.volume = 0.5;
+                    battleAudio = new Audio(MUSIC_BATTLE);
+                    battleAudio.loop = true;
+                    battleAudio.volume = 0.5;
+                    realAudio = new Audio(MUSIC_REAL);
+                    realAudio.loop = true;
+                    realAudio.volume = 0.5;
+                    templeAudio = new Audio(MUSIC_TEMPLE);
+                    templeAudio.loop = true;
+                    templeAudio.volume = 0.5;
+                } catch (e) { console.warn('音频初始化失败:', e); }
+            }
+
+            function playDesertMusic() {
+                if (currentAudio === gameAudio && !gameAudio.paused) return;
+                try {
+                    if (currentAudio) { currentAudio.pause();
+                        currentAudio.currentTime = 0; }
+                    gameAudio.currentTime = 0;
+                    gameAudio.play().catch(function() {});
+                    currentAudio = gameAudio;
+                } catch (e) {}
+            }
+
+            function playBattleMusic() {
+                if (currentAudio === battleAudio && !battleAudio.paused) return;
+                try {
+                    if (currentAudio) { currentAudio.pause();
+                        currentAudio.currentTime = 0; }
+                    battleAudio.currentTime = 0;
+                    battleAudio.play().catch(function() {});
+                    currentAudio = battleAudio;
+                } catch (e) {}
+            }
+
+            function playRealMusic() {
+                if (currentAudio === realAudio && !realAudio.paused) return;
+                try {
+                    if (currentAudio) { currentAudio.pause();
+                        currentAudio.currentTime = 0; }
+                    realAudio.currentTime = 0;
+                    realAudio.play().catch(function() {});
+                    currentAudio = realAudio;
+                } catch (e) {}
+            }
+
+            function playTempleMusic() {
+                if (currentAudio === templeAudio && !templeAudio.paused) return;
+                try {
+                    if (currentAudio) { currentAudio.pause();
+                        currentAudio.currentTime = 0; }
+                    templeAudio.currentTime = 0;
+                    templeAudio.play().catch(function() {});
+                    currentAudio = templeAudio;
+                } catch (e) {}
+            }
+
+            function stopAllAudio() {
+                try {
+                    if (gameAudio) { gameAudio.pause();
+                        gameAudio.currentTime = 0; }
+                    if (battleAudio) { battleAudio.pause();
+                        battleAudio.currentTime = 0; }
+                    if (realAudio) { realAudio.pause();
+                        realAudio.currentTime = 0; }
+                    if (templeAudio) { templeAudio.pause();
+                        templeAudio.currentTime = 0; }
+                    currentAudio = null;
+                } catch (e) {}
+            }
+
+            // ============================================================
+            //  说话人类型检测
+            // ============================================================
+            function getSpeakerType(speaker) {
+                if (speaker === '岩咚') return 'yandong';
+                if (speaker === '云翎') return 'yunling';
+                if (speaker === '珍妮') return 'zhenni';
+                if (speaker === '沙牙') return 'shaya';
+                if (speaker === '姆卡斯卡') return 'mukaska';
+                if (speaker === '小胖') return 'xiaopang';
+                if (speaker === '跟班1' || speaker === '跟班2') return 'xiaopang';
+                if (speaker === '母亲' || speaker === '妈妈') return 'mother';
+                if (speaker === '父亲' || speaker === '爸爸') return 'father';
+                if (speaker === '林老师' || speaker === '老师') return 'teacher';
+                if (speaker === '小陈') return 'xiaochen';
+                if (speaker === '小雨') return 'xiaoyu';
+                if (speaker === '王老师') return 'wang';
+                if (speaker === '阿强') return 'aqiang';
+                if (speaker === '阿力') return 'ali';
+                return null;
+            }
+
+            function getRealCharFileName(rightChar) {
+                if (REAL_CHAR_MAP[rightChar]) {
+                    return CHARACTERS[REAL_CHAR_MAP[rightChar]];
+                }
+                return null;
+            }
+
+            // ============================================================
+            //  战斗数据
+            // ============================================================
+            var BATTLE_DATA_DESERT = {
+                allies: [
+                    { id: 'lin', name: '林小宁', maxHp: 30, hp: 30, shield: 0, attack: 6, icon: 'lin_xiaoning' },
+                    { id: 'yandong', name: '岩咚', maxHp: 40, hp: 40, shield: 0, attack: 8, icon: 'yandong' },
+                    { id: 'yunling', name: '云翎', maxHp: 25, hp: 25, shield: 0, attack: 5, icon: 'yunling' },
+                    { id: 'zhenni', name: '珍妮', maxHp: 20, hp: 20, shield: 0, attack: 4, icon: 'zhenni' },
+                    { id: 'shaya', name: '沙牙', maxHp: 35, hp: 35, shield: 0, attack: 7, icon: 'shaya' }
+                ],
+                enemy: { id: 'mukaska', name: '姆卡斯卡精灵兽', maxHp: 200, hp: 200, shield: 0, attack: 12,
+                icon: 'mukaska' },
+                cards: [
+                    { id: 'c1', name: '风刃', type: 'attack', damage: 8, desc: '造成 8 点伤害', owner: 'lin',
+                        icon: 'lin_xiaoning' },
+                    { id: 'c2', name: '云盾', type: 'defend', shield: 6, desc: '获得 6 点护盾', owner: 'lin',
+                        icon: 'lin_xiaoning' },
+                    { id: 'c3', name: '重击', type: 'attack', damage: 10, desc: '造成 10 点伤害', owner: 'yandong',
+                        icon: 'yandong' },
+                    { id: 'c4', name: '岩石护甲', type: 'defend', shield: 8, desc: '获得 8 点护盾', owner: 'yandong',
+                        icon: 'yandong' },
+                    { id: 'c5', name: '光愈', type: 'heal', heal: 8, desc: '恢复 8 点生命', owner: 'yunling',
+                        icon: 'yunling' },
+                    { id: 'c6', name: '净化', type: 'special', damage: 6, heal: 3, desc: '伤害 6 · 治疗 3', owner: 'yunling',
+                        icon: 'yunling' },
+                    { id: 'c7', name: '清风', type: 'attack', damage: 5, desc: '造成 5 点伤害', owner: 'lin',
+                        icon: 'lin_xiaoning' },
+                    { id: 'c8', name: '震荡', type: 'special', damage: 7, desc: '造成 7 点伤害', owner: 'yandong',
+                        icon: 'yandong' },
+                    { id: 'c9', name: '晨曦', type: 'heal', heal: 10, desc: '恢复 10 点生命', owner: 'yunling',
+                        icon: 'yunling' }
+                ]
+            };
+
+            var BATTLE_DATA_REAL = {
+                allies: [
+                    { id: 'lin', name: '林小宁', maxHp: 30, hp: 30, shield: 0, attack: 6, icon: 'lin_xiaoning' }
+                ],
+                enemy: [
+                    { id: 'xiaopang', name: '小胖', maxHp: 30, hp: 30, shield: 0, attack: 5, icon: 'xiaopang' },
+                    { id: 'aqiang', name: '阿强', maxHp: 12, hp: 12, shield: 0, attack: 3, icon: 'aqiang' },
+                    { id: 'ali', name: '阿力', maxHp: 12, hp: 12, shield: 0, attack: 3, icon: 'ali' }
+                ],
+                cards: [
+                    { id: 'c1', name: '风刃', type: 'attack', damage: 8, desc: '造成 8 点伤害', owner: 'lin',
+                        icon: 'lin_xiaoning' },
+                    { id: 'c2', name: '云盾', type: 'defend', shield: 6, desc: '获得 6 点护盾', owner: 'lin',
+                        icon: 'lin_xiaoning' },
+                    { id: 'c7', name: '清风', type: 'attack', damage: 5, desc: '造成 5 点伤害', owner: 'lin',
+                        icon: 'lin_xiaoning' }
+                ]
+            };
+
+            // ============================================================
+            //  图片加载
+            // ============================================================
+            var imageLoadCache = {};
+            var backgroundLoading = {};
+            var sceneLoadId = 0;
+            var allImagesLoaded = [];
+
+            function preloadImages() {
+                var promises = [];
+                for (var i = 1; i <= 40; i++) {
+                    var url = PHOTO_PREFIX + String(i).padStart(3, '0') + '.png';
+                    promises.push(new Promise(function(resolve) {
+                        var img = new Image();
+                        img.onload = function() {
+                            imageLoadCache[url] = true;
+                            resolve({ url: url, loaded: true });
+                        };
+                        img.onerror = function() {
+                            imageLoadCache[url] = false;
+                            resolve({ url: url, loaded: false });
+                        };
+                        img.src = url;
+                    }));
+                }
+                var charFiles = ['lin_xiaoning.png', 'yandong.png', 'yunling.png', 'zhenni.png', 'shaya.png',
+                    'mukaska.png', 'nan.png',
+                    'mm.png', 'bb.png', 'lin.png', 'chen.png', 'yu.png', 'xiaopang.png', 'aqiang.png', 'ali.png',
+                    'wang.png'
+                ];
+                charFiles.forEach(function(file) {
+                    var url = CHARACTER_DIR + file;
+                    promises.push(new Promise(function(resolve) {
+                        var img = new Image();
+                        img.onload = function() {
+                            resolve({ url: url, loaded: true, type: 'character' });
+                        };
+                        img.onerror = function() {
+                            resolve({ url: url, loaded: false, type: 'character' });
+                        };
+                        img.src = url;
+                    }));
+                });
+                return Promise.all(promises).then(function(results) {
+                    allImagesLoaded = results.filter(function(r) { return r.loaded; });
+                    return allImagesLoaded;
+                });
+            }
+
+            function getImageUrl(partIdx) {
+                var imgNum = CHAPTER_DATA[partIdx] ? CHAPTER_DATA[partIdx].img : 1;
+                if (!imgNum || imgNum < 1) imgNum = 1;
+                if (imgNum > 40) imgNum = 40;
+                var padded = String(imgNum).padStart(3, '0');
+                return PHOTO_PREFIX + padded + '.png';
+            }
+
+            function loadBackgroundSmart(url, callback) {
+                if (backgroundLoading[url]) {
+                    setTimeout(function() { loadBackgroundSmart(url, callback); }, 200);
+                    return;
+                }
+                if (imageLoadCache[url] === true) {
+                    callback(true);
+                    return;
+                }
+                backgroundLoading[url] = true;
+                var img = new Image();
+                img.onload = function() {
+                    imageLoadCache[url] = true;
+                    backgroundLoading[url] = false;
+                    callback(true);
+                };
+                img.onerror = function() {
+                    imageLoadCache[url] = false;
+                    backgroundLoading[url] = false;
+                    callback(false);
+                };
+                img.src = url;
+            }
+
+            function getCharacterUrl(fileName) {
+                var url = CHARACTER_DIR + fileName;
+                var found = allImagesLoaded.find(function(r) { return r.url === url && r.loaded; });
+                return found ? url : null;
+            }
+
+            function getAvatarUrl(iconName) {
+                var fileMap = {
+                    'lin_xiaoning': 'lin_xiaoning.png',
+                    'yandong': 'yandong.png',
+                    'yunling': 'yunling.png',
+                    'zhenni': 'zhenni.png',
+                    'shaya': 'shaya.png',
+                    'mukaska': 'mukaska.png',
+                    'nan': 'nan.png',
+                    'xiaopang': 'xiaopang.png',
+                    'aqiang': 'aqiang.png',
+                    'ali': 'ali.png',
+                    'mm': 'mm.png',
+                    'bb': 'bb.png',
+                    'lin': 'lin.png',
+                    'chen': 'chen.png',
+                    'yu': 'yu.png',
+                    'wang': 'wang.png'
+                };
+                var fileName = fileMap[iconName] || 'nan.png';
+                return CHARACTER_DIR + fileName;
+            }
+
+            // ============================================================
+            //  状态
+            // ============================================================
+            var currentPart = 0,
+                currentLine = 0,
+                storyActive = false,
+                isAwakened = false,
+                awaitingChoice = false,
+                isInBattle = false;
+            var battleState = null,
+                selectedAlly = null,
+                battleLocked = false;
+            var currentEnemyName = '';
+            var isDesertBattle = false;
+            var isRealBattle = false;
+            var deathTriggered = false;
+
+            // ============================================================
+            //  工具函数
+            // ============================================================
+            function shuffle(arr) {
+                for (var i = arr.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var temp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = temp;
+                }
+                return arr;
+            }
+
+            // ============================================================
+            //  死亡转场动画
+            // ============================================================
+            var deathTexts = [
+                '画面模糊……伙伴们的呼喊声越来越远……',
+                '……'
+            ];
+
+            function triggerDeathTransition() {
+                if (deathTriggered) return;
+                deathTriggered = true;
+                storyActive = false;
+
+                // 播放闹钟声
+                try {
+                    var ctx = new(window.AudioContext || window.webkitAudioContext)();
+                    var osc = ctx.createOscillator();
+                    var gain = ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.value = 800;
+                    gain.gain.value = 0.15;
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 1.2);
+                    var osc2 = ctx.createOscillator();
+                    var gain2 = ctx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.value = 1200;
+                    gain2.gain.value = 0.08;
+                    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.start(ctx.currentTime + 1.0);
+                    osc2.stop(ctx.currentTime + 1.6);
+                } catch (e) {}
+
+                // 先显示文字，再启动遮罩动画
+                storyLines.innerHTML = '';
+                var idx = 0;
+
+                function showNextDeathText() {
+                    if (idx >= deathTexts.length) {
+                        setTimeout(function() {
+                            // 启动遮罩动画
+                            deathOverlay.classList.add('active');
+                            setTimeout(function() {
+                                deathOverlay.classList.remove('active');
+                                // 跳转到现实世界（索引15）
+                                if (currentPart < CHAPTER_DATA.length - 1) {
+                                    currentPart = 15;
+                                    currentLine = 0;
+                                    playRealMusic();
+                                    storyActive = true;
+                                    showPart(currentPart);
+                                    updateButtonState();
+                                    updateProgress();
+                                }
+                            }, 3000);
+                        }, 300);
+                        return;
+                    }
+                    var div = document.createElement('div');
+                    div.className = 'story-line';
+                    div.textContent = deathTexts[idx];
+                    storyLines.appendChild(div);
+                    requestAnimationFrame(function() { div.classList.add('show'); });
+                    storyPanel.scrollTop = storyPanel.scrollHeight;
+                    idx++;
+                    setTimeout(showNextDeathText, 700);
+                }
+                setTimeout(showNextDeathText, 300);
+            }
+
+            // ============================================================
+            //  剧情引擎
+            // ============================================================
+            function startStory() {
+                storyActive = true;
+                currentPart = 0;
+                currentLine = 0;
+                isAwakened = false;
+                awaitingChoice = false;
+                isInBattle = false;
+                deathTriggered = false;
+                battleContainer.classList.remove('show');
+
+                characterLayer.style.opacity = '0';
+                characterLayer.classList.remove('awaken');
+                characterRight.classList.remove('show');
+                characterRight.style.opacity = '0';
+                characterRight.src = '';
+                storyScene.classList.remove('shaking', 'shaking-strong');
+
+                playDesertMusic();
+                showPart(0);
+                storyCtrlBtn.classList.add('show');
+                updateButtonState();
+                tapHint.classList.add('show');
+                updateProgress();
+            }
+
+            function showPart(partIdx) {
+                var part = CHAPTER_DATA[partIdx];
+                if (!part) return;
+
+                if (part.isBattleStart) {
+                    if (part.isDesertBattle) {
+                        startDesertBattle(part.enemyName || '姆卡斯卡精灵兽');
+                    } else if (part.isRealBattle) {
+                        startRealBattle(part.enemyName || '小胖');
+                    }
+                    return;
+                }
+                if (part.isBattleEnd) {
+                    return;
+                }
+                if (part.isDeathTransition) {
+                    triggerDeathTransition();
+                    return;
+                }
+
+                var isAwakenPart = part.isAwaken === true;
+                var rightChar = part.rightCharacter || null;
+
+                storyChapter.textContent = '✦ 第四章 · 梦醒时分';
+
+                // 设置背景图
+                var imgUrl = getImageUrl(partIdx);
+                var gradients = [
+                    'linear-gradient(145deg, #1a2233, #0b0e14)',
+                    'linear-gradient(145deg, #2a1a0a, #1a0a00)',
+                    'linear-gradient(145deg, #1a2a1a, #0a1a0a)',
+                    'linear-gradient(145deg, #2a1a2a, #1a0a1a)',
+                    'linear-gradient(145deg, #1a2a2a, #0a1a1a)'
+                ];
+                var gradIdx = partIdx % gradients.length;
+
+                storyBg.style.backgroundImage = gradients[gradIdx];
+                storyBg.style.backgroundColor = 'transparent';
+                storyBg.style.backgroundSize = 'cover';
+                storyBg.style.backgroundPosition = 'center';
+                storyBg.style.opacity = '1';
+                storyBg.classList.add('loaded');
+
+                var loadId = ++sceneLoadId;
+                loadBackgroundSmart(imgUrl, function(success) {
+                    if (loadId !== sceneLoadId) return;
+                    if (success) {
+                        storyBg.style.backgroundImage = 'url("' + imgUrl + '")';
+                        storyBg.style.backgroundColor = 'transparent';
+                        storyBg.style.backgroundSize = 'cover';
+                        storyBg.style.backgroundPosition = 'center';
+                        storyBg.style.opacity = '1';
+                    } else {
+                        storyBg.style.backgroundImage = gradients[gradIdx];
+                    }
+                });
+
+                if (isAwakenPart) {
+                    isAwakened = true;
+                    storyBg.classList.add('blur');
+                    characterLayer.classList.add('awaken');
+                    characterLayer.style.opacity = '1';
+                    storyPanel.classList.add('awaken');
+                    speakerLabel.style.display = 'block';
+                    tapHint.classList.remove('show');
+                    returnMenuBtn.classList.remove('show');
+                    choiceArea.innerHTML = '';
+                    choiceArea.classList.remove('show');
+                    awaitingChoice = false;
+
+                    var charFileName = null;
+                    if (rightChar) {
+                        var realFileName = getRealCharFileName(rightChar);
+                        if (realFileName) {
+                            charFileName = realFileName;
+                        } else {
+                            charFileName = CHARACTERS[rightChar] || null;
+                        }
+                    }
+
+                    if (charFileName) {
+                        var charUrl = getCharacterUrl(charFileName);
+                        if (charUrl) {
+                            characterRight.src = charUrl;
+                            characterRight.classList.add('show');
+                            characterRight.style.opacity = '1';
+                            if (rightChar === 'yunling') {
+                                characterRight.style.transform = 'scaleX(1)';
+                            } else if (rightChar === 'zhenni') {
+                                characterRight.style.transform = 'scaleX(1)';
+                                characterRight.style.width = '260px';
+                                characterRight.style.bottom = '20%';
+                            } else if (rightChar === 'shaya') {
+                                characterRight.style.transform = 'scaleX(1)';
+                                characterRight.style.width = '280px';
+                                characterRight.style.bottom = '20%';
+                            } else if (rightChar === 'mother' || rightChar === 'father' ||
+                                rightChar === 'teacher' || rightChar === 'xiaochen' ||
+                                rightChar === 'xiaoyu' || rightChar === 'wang' ||
+                                rightChar === 'xiaopang' || rightChar === 'aqiang' || rightChar === 'ali') {
+                                characterRight.style.transform = 'scaleX(1)';
+                                characterRight.style.width = '240px';
+                                characterRight.style.bottom = '22%';
+                                if (rightChar === 'xiaopang' || rightChar === 'aqiang' || rightChar === 'ali') {
+                                    characterRight.style.border = '2px solid #ff6b6b';
+                                    characterRight.style.borderRadius = '50%';
+                                }
+                            } else {
+                                characterRight.style.transform = 'scaleX(-1)';
+                                characterRight.style.width = '280px';
+                                characterRight.style.bottom = '22%';
+                            }
+                        }
+                    } else {
+                        characterRight.classList.remove('show');
+                        characterRight.style.opacity = '0';
+                        characterRight.src = '';
+                    }
+                } else {
+                    isAwakened = false;
+                    storyBg.classList.remove('blur');
+                    characterLayer.classList.remove('awaken');
+                    characterLayer.style.opacity = '0';
+                    characterRight.classList.remove('show');
+                    characterRight.style.opacity = '0';
+                    characterRight.src = '';
+                    storyPanel.classList.remove('awaken');
+                    speakerLabel.style.display = 'none';
+                    tapHint.classList.add('show');
+                    returnMenuBtn.classList.remove('show');
+                    choiceArea.innerHTML = '';
+                    choiceArea.classList.remove('show');
+                    awaitingChoice = false;
+                }
+
+                storyLines.innerHTML = '';
+                currentLine = 0;
+
+                if (part.lines.length > 0) {
+                    showLine(partIdx, 0);
+                    currentLine = 1;
+                }
+
+                updateProgress();
+                updateButtonState();
+                storyPanel.scrollTop = storyPanel.scrollHeight;
+            }
+
+            function showLine(partIdx, lineIdx) {
+                var part = CHAPTER_DATA[partIdx];
+                if (!part) return;
+                if (lineIdx >= part.lines.length) return;
+
+                var text = part.lines[lineIdx];
+                var speaker = null;
+                var speakerType = null;
+
+                speakerLabel.textContent = '';
+
+                if (text.indexOf('|') !== -1) {
+                    var parts = text.split('|');
+                    speaker = parts[0].trim();
+                    text = parts.slice(1).join('|').trim();
+                    speakerLabel.textContent = speaker;
+                    speakerType = getSpeakerType(speaker);
+                    if (speakerType === 'yandong') speakerLabel.style.color = 'rgba(150, 200, 255, 0.9)';
+                    else if (speakerType === 'yunling') speakerLabel.style.color = 'rgba(200, 220, 255, 0.9)';
+                    else if (speakerType === 'zhenni') speakerLabel.style.color = '#ffb8a0';
+                    else if (speakerType === 'shaya') speakerLabel.style.color = '#ff8a65';
+                    else if (speakerType === 'mukaska') speakerLabel.style.color = '#ff6b6b';
+                    else if (speakerType === 'xiaopang') speakerLabel.style.color = '#ff6b6b';
+                    else if (speakerType === 'mother') speakerLabel.style.color = '#a0d0ff';
+                    else if (speakerType === 'father') speakerLabel.style.color = '#b8a0d0';
+                    else if (speakerType === 'teacher') speakerLabel.style.color = '#80d0a0';
+                    else if (speakerType === 'xiaochen') speakerLabel.style.color = '#80b0d0';
+                    else if (speakerType === 'xiaoyu') speakerLabel.style.color = '#ffb8d0';
+                    else if (speakerType === 'wang') speakerLabel.style.color = '#d0b080';
+                    else if (speakerType === 'aqiang') speakerLabel.style.color = '#ff6b6b';
+                    else if (speakerType === 'ali') speakerLabel.style.color = '#ff6b6b';
+                    else speakerLabel.style.color = 'rgba(255, 215, 150, 0.9)';
+                    speakerLabel.style.display = 'block';
+                } else {
+                    speakerLabel.style.display = 'none';
+                }
+
+                var div = document.createElement('div');
+                div.className = 'story-line';
+                if (speakerType === 'yandong') div.classList.add('speaker-yandong');
+                else if (speakerType === 'yunling') div.classList.add('speaker-yunling');
+                else if (speakerType === 'zhenni') div.classList.add('speaker-zhenni');
+                else if (speakerType === 'shaya') div.classList.add('speaker-shaya');
+                else if (speakerType === 'mukaska') div.classList.add('speaker-mukaska');
+                else if (speakerType === 'xiaopang') div.classList.add('speaker-xiaopang');
+                else if (speakerType === 'mother') div.classList.add('speaker-mother');
+                else if (speakerType === 'father') div.classList.add('speaker-father');
+                else if (speakerType === 'teacher') div.classList.add('speaker-teacher');
+                else if (speakerType === 'xiaochen') div.classList.add('speaker-xiaochen');
+                else if (speakerType === 'xiaoyu') div.classList.add('speaker-xiaoyu');
+                else if (speakerType === 'wang') div.classList.add('speaker-wang');
+                div.textContent = text;
+                storyLines.appendChild(div);
+
+                requestAnimationFrame(function() { div.classList.add('show'); });
+                storyPanel.scrollTop = storyPanel.scrollHeight;
+
+                var isLastPart = (partIdx === CHAPTER_DATA.length - 1);
+                var isLastLine = (lineIdx === part.lines.length - 1);
+                if (isLastPart && isLastLine) {
+                    playTempleMusic();
+                    setTimeout(function() {
+                        returnMenuBtn.classList.add('show');
+                        storyCtrlBtn.classList.remove('show');
+                        tapHint.classList.remove('show');
+                    }, 800);
+                }
+            }
+
+            function handleContinue() {
+                if (!storyActive) return;
+                if (awaitingChoice) return;
+                if (isInBattle) return;
+
+                var part = CHAPTER_DATA[currentPart];
+                if (!part) return;
+                if (part.isBattle || part.isBattleStart) return;
+                if (part.isBattleEnd) return;
+                if (part.isDeathTransition) return;
+
+                if (currentLine >= part.lines.length) {
+                    if (currentPart >= CHAPTER_DATA.length - 1) return;
+                    currentPart++;
+                    currentLine = 0;
+                    showPart(currentPart);
+                    updateButtonState();
+                    updateProgress();
+                    return;
+                }
+
+                showLine(currentPart, currentLine);
+                currentLine++;
+                updateButtonState();
+                updateProgress();
+            }
+
+            function updateButtonState() {
+                var part = CHAPTER_DATA[currentPart];
+                if (!part) { storyCtrlBtn.classList.remove('show'); return; }
+                if (part.isBattle || part.isBattleStart || part.isBattleEnd) {
+                    storyCtrlBtn.classList.remove('show');
+                    return;
+                }
+                if (part.isDeathTransition) {
+                    storyCtrlBtn.classList.remove('show');
+                    return;
+                }
+                var allShown = (currentLine >= part.lines.length);
+                if (allShown) {
+                    if (currentPart >= CHAPTER_DATA.length - 1) {
+                        storyCtrlBtn.classList.remove('show');
+                    } else {
+                        storyCtrlBtn.textContent = '下一章 →';
+                        storyCtrlBtn.classList.add('next-chapter');
+                        storyCtrlBtn.classList.add('show');
+                    }
+                } else {
+                    storyCtrlBtn.textContent = '继续 →';
+                    storyCtrlBtn.classList.remove('next-chapter');
+                    storyCtrlBtn.classList.add('show');
+                }
+            }
+
+            function updateProgress() {
+                var total = CHAPTER_DATA.length;
+                var current = currentPart + 1;
+                var part = CHAPTER_DATA[currentPart];
+                if (part) {
+                    var totalLines = part.lines.length;
+                    var shown = Math.min(currentLine, totalLines);
+                    storyProgress.textContent = current + ' / ' + total + '  ·  ' + shown + '/' + totalLines;
+                } else {
+                    storyProgress.textContent = current + ' / ' + total;
+                }
+            }
+
+            // ============================================================
+            //  沙漠战斗（必败战）
+            // ============================================================
+            function startDesertBattle(enemyName) {
+                isInBattle = true;
+                isDesertBattle = true;
+                isRealBattle = false;
+                storyActive = false;
+                battleContainer.classList.add('show');
+                playBattleMusic();
+
+                currentEnemyName = enemyName || '姆卡斯卡精灵兽';
+
+                battleState = {
+                    allies: BATTLE_DATA_DESERT.allies.map(function(a) { return { ...a, hp: a.maxHp, shield: 0 }; }),
+                    enemy: {
+                        id: 'mukaska',
+                        name: enemyName,
+                        maxHp: 200,
+                        hp: 200,
+                        shield: 0,
+                        attack: 12,
+                        icon: 'mukaska'
+                    },
+                    deck: shuffle([].concat(BATTLE_DATA_DESERT.cards)),
+                    hand: [],
+                    turn: 0,
+                    phase: 'select',
+                    isDesert: true,
+                    turnCount: 0
+                };
+                selectedAlly = null;
+                battleLocked = false;
+
+                var imgUrl = getImageUrl(currentPart);
+                if (imgUrl) {
+                    loadBackgroundSmart(imgUrl, function(success) {
+                        if (success) {
+                            battleBg.style.backgroundImage = 'url("' + imgUrl + '")';
+                            battleBg.style.backgroundSize = 'cover';
+                            battleBg.style.backgroundPosition = 'center';
+                        } else {
+                            battleBg.style.backgroundImage = 'linear-gradient(145deg, #1a2233, #0b0e14)';
+                        }
+                    });
+                } else {
+                    battleBg.style.backgroundImage = 'linear-gradient(145deg, #1a2233, #0b0e14)';
+                }
+
+                renderBattleUI();
+                battleLog.textContent = '⚔️ ' + enemyName + '出现了！五人合力应战！';
+                battleHint.textContent = '👆 点击选择一名角色';
+                battleEndTurn.disabled = true;
+
+                drawCardsDesert(5);
+                renderHand();
+                battleState.phase = 'select';
+            }
+
+            function drawCardsDesert(count) {
+                var deck = battleState.deck;
+                for (var i = 0; i < count; i++) {
+                    if (deck.length === 0) {
+                        battleState.deck = shuffle([].concat(BATTLE_DATA_DESERT.cards));
+                        deck = battleState.deck;
+                    }
+                    if (deck.length > 0) {
+                        var card = deck.pop();
+                        battleState.hand.push(card);
+                    }
+                }
+                if (battleState.hand.length > 6) {
+                    battleState.hand = battleState.hand.slice(0, 6);
+                }
+            }
+
+            function renderBattleUI() {
+                battleAllies.innerHTML = '';
+                battleState.allies.forEach(function(ally, idx) {
+                    var unit = document.createElement('div');
+                    unit.className = 'battle-unit selectable';
+                    unit.dataset.idx = idx;
+                    var hpPct = (ally.hp / ally.maxHp * 100);
+                    var hpClass = hpPct < 30 ? 'low' : '';
+                    var shieldText = ally.shield > 0 ? ' 🛡️' + ally.shield : '';
+                    var avatarUrl = getAvatarUrl(ally.icon);
+                    unit.innerHTML =
+                        `
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <img src="${avatarUrl || ''}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.1);" />
+                            <div>
+                                <div class="unit-name">${ally.name}</div>
+                                <div class="unit-hp">❤️ ${ally.hp}/${ally.maxHp}${shieldText}
+                                    <span class="hp-bar"><span class="hp-fill ${hpClass}" style="width:${hpPct}%"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    if (ally.hp <= 0) {
+                        unit.style.opacity = '0.3';
+                        unit.classList.remove('selectable');
+                    }
+                    if (selectedAlly === idx) {
+                        unit.classList.add('selected');
+                    }
+                    unit.addEventListener('click', function() {
+                        if (battleLocked) return;
+                        if (battleState.phase !== 'select') return;
+                        if (battleState.allies[idx].hp <= 0) return;
+                        selectAlly(idx);
+                    });
+                    battleAllies.appendChild(unit);
+                });
+
+                var enemy = battleState.enemy;
+                var eHpPct = (enemy.hp / enemy.maxHp * 100);
+                var eHpClass = eHpPct < 30 ? 'low' : '';
+                var eShieldText = enemy.shield > 0 ? ' 🛡️' + enemy.shield : '';
+                var enemyAvatar = getAvatarUrl(enemy.icon);
+                battleEnemy.innerHTML =
+                    `
+                    <div class="battle-unit enemy-unit" style="text-align:left;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <img src="${enemyAvatar || ''}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #ff6b6b;" />
+                            <div>
+                                <div class="unit-name">👹 ${enemy.name}</div>
+                                <div class="unit-hp">❤️ ${enemy.hp}/${enemy.maxHp}${eShieldText}
+                                    <span class="hp-bar"><span class="hp-fill enemy-hp ${eHpClass}" style="width:${eHpPct}%"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function renderHand() {
+                battleHand.innerHTML = '';
+                if (battleState.hand.length === 0) {
+                    battleHand.innerHTML =
+                        '<div style="color:rgba(255,255,255,0.2);font-size:14px;letter-spacing:2px;">— 手牌已空 —</div>';
+                    return;
+                }
+                battleState.hand.forEach(function(card, idx) {
+                    var btn = document.createElement('div');
+                    btn.className = 'battle-card type-' + card.type;
+                    if (battleState.phase !== 'card' || battleLocked) {
+                        btn.classList.add('disabled');
+                    }
+                    var avatarUrl = getAvatarUrl(card.icon);
+                    btn.innerHTML =
+                        `
+                        <img src="${avatarUrl || ''}" class="card-avatar" />
+                        <div class="card-name">${card.name}</div>
+                        <div class="card-desc">${card.desc || ''}</div>
+                    `;
+                    btn.addEventListener('click', function() {
+                        if (battleLocked) return;
+                        if (battleState.phase !== 'card') return;
+                        if (battleState.isDesert) {
+                            playDesertCard(idx);
+                        } else {
+                            playRealCard(idx);
+                        }
+                    });
+                    battleHand.appendChild(btn);
+                });
+            }
+
+            function selectAlly(idx) {
+                if (battleState.allies[idx].hp <= 0) return;
+                selectedAlly = idx;
+                battleState.phase = 'card';
+                battleHint.textContent = '🎴 选择一张卡牌 · ' + battleState.allies[idx].name;
+                battleLog.textContent = '👉 选择 ' + battleState.allies[idx].name + ' 的卡牌';
+                renderBattleUI();
+                renderHand();
+                battleEndTurn.disabled = true;
+            }
+
+            function playDesertCard(idx) {
+                if (battleLocked) return;
+                if (selectedAlly === null) return;
+                if (battleState.phase !== 'card') return;
+
+                var card = battleState.hand[idx];
+                if (!card) return;
+                var ally = battleState.allies[selectedAlly];
+                if (ally.hp <= 0) return;
+
+                battleLocked = true;
+                battleState.phase = 'enemy';
+
+                storyScene.classList.add('battle-shake');
+                characterLayer.classList.add('battle-sway');
+                characterRight.classList.add('battle-sway');
+                setTimeout(function() {
+                    storyScene.classList.remove('battle-shake');
+                    characterLayer.classList.remove('battle-sway');
+                    characterRight.classList.remove('battle-sway');
+                }, 1200);
+
+                battleState.hand.splice(idx, 1);
+
+                var logMsg = ally.name + ' 使用了「' + card.name + '」';
+                var dmg = 0,
+                    heal = 0,
+                    shield = 0;
+
+                if (card.type === 'attack' && card.damage) {
+                    dmg = card.damage;
+                    var enemy = battleState.enemy;
+                    var actualDmg = Math.max(0, dmg - (enemy.shield || 0));
+                    if (enemy.shield > 0) {
+                        var absorbed = Math.min(enemy.shield, dmg);
+                        enemy.shield -= absorbed;
+                        logMsg += '，造成 ' + actualDmg + ' 点伤害 (护盾吸收 ' + absorbed + ')';
+                    } else {
+                        logMsg += '，造成 ' + actualDmg + ' 点伤害';
+                    }
+                    enemy.hp = Math.max(0, enemy.hp - actualDmg);
+                } else if (card.type === 'defend' && card.shield) {
+                    shield = card.shield;
+                    ally.shield = (ally.shield || 0) + shield;
+                    logMsg += '，获得 ' + shield + ' 点护盾';
+                } else if (card.type === 'heal' && card.heal) {
+                    heal = card.heal;
+                    var actualHeal = Math.min(heal, ally.maxHp - ally.hp);
+                    ally.hp = Math.min(ally.maxHp, ally.hp + heal);
+                    logMsg += '，恢复 ' + actualHeal + ' 点生命';
+                } else if (card.type === 'special') {
+                    if (card.damage) {
+                        var enemy2 = battleState.enemy;
+                        var actualDmg2 = Math.max(0, card.damage - (enemy2.shield || 0));
+                        if (enemy2.shield > 0) {
+                            var absorbed2 = Math.min(enemy2.shield, card.damage);
+                            enemy2.shield -= absorbed2;
+                            logMsg += '，造成 ' + actualDmg2 + ' 点伤害 (护盾吸收 ' + absorbed2 + ')';
+                        } else {
+                            logMsg += '，造成 ' + actualDmg2 + ' 点伤害';
+                        }
+                        enemy2.hp = Math.max(0, enemy2.hp - actualDmg2);
+                    }
+                    if (card.heal) {
+                        var actualHeal2 = Math.min(card.heal, ally.maxHp - ally.hp);
+                        ally.hp = Math.min(ally.maxHp, ally.hp + card.heal);
+                        logMsg += '，恢复 ' + actualHeal2 + ' 点生命';
+                    }
+                }
+
+                battleLog.textContent = logMsg;
+                renderBattleUI();
+
+                battleState.turnCount = (battleState.turnCount || 0) + 1;
+
+                if (battleState.enemy.hp <= 0) {
+                    battleState.enemy.hp = 0;
+                    renderBattleUI();
+                    battleLog.textContent = '💥 姆卡斯卡被击倒了……但它又站了起来！';
+                    battleHint.textContent = '⚠️ 它还在继续攻击！';
+                    battleLocked = false;
+                    battleState.phase = 'select';
+                    selectedAlly = null;
+                    battleEndTurn.disabled = true;
+                    battleState.enemy.hp = 100;
+                    renderBattleUI();
+                    setTimeout(function() {
+                        enemyTurn();
+                    }, 1000);
+                    return;
+                }
+
+                if (battleState.enemy.hp < 50 || battleState.turnCount > 3) {
+                    battleLog.textContent = '💔 姆卡斯卡爆发了强大的力量……五人被击倒……';
+                    battleHint.textContent = '💀 战败……';
+                    battleEndTurn.disabled = true;
+                    battleLocked = true;
+                    setTimeout(function() {
+                        endDesertBattle(false);
+                    }, 1500);
+                    return;
+                }
+
+                setTimeout(function() {
+                    enemyTurn();
+                }, 800);
+            }
+
+            function enemyTurn() {
+                var enemy = battleState.enemy;
+                if (enemy.hp <= 0) {
+                    endDesertBattle(true);
+                    return;
+                }
+
+                var aliveAllies = battleState.allies.filter(function(a) { return a.hp > 0; });
+                if (aliveAllies.length === 0) {
+                    endDesertBattle(false);
+                    return;
+                }
+                var target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
+                var baseDmg = enemy.attack + Math.floor(Math.random() * 3) - 1;
+                var actualDmg = Math.max(2, baseDmg);
+                if (target.shield > 0) {
+                    var absorbed = Math.min(target.shield, actualDmg);
+                    target.shield -= absorbed;
+                    actualDmg -= absorbed;
+                    if (target.shield < 0) target.shield = 0;
+                }
+                target.hp = Math.max(0, target.hp - actualDmg);
+
+                storyScene.classList.add('battle-shake');
+                characterLayer.classList.add('battle-sway');
+                characterRight.classList.add('battle-sway');
+                setTimeout(function() {
+                    storyScene.classList.remove('battle-shake');
+                    characterLayer.classList.remove('battle-sway');
+                    characterRight.classList.remove('battle-sway');
+                }, 1200);
+
+                battleLog.textContent = '👹 姆卡斯卡攻击 ' + target.name + '，造成 ' + actualDmg + ' 点伤害';
+                renderBattleUI();
+
+                var alive = battleState.allies.filter(function(a) { return a.hp > 0; });
+                if (alive.length === 0) {
+                    battleLog.textContent = '💔 全员倒下...';
+                    battleHint.textContent = '💀 败北...';
+                    battleEndTurn.disabled = true;
+                    battleLocked = true;
+                    setTimeout(function() {
+                        endDesertBattle(false);
+                    }, 1500);
+                    return;
+                }
+
+                battleState.turnCount = (battleState.turnCount || 0) + 1;
+                if (battleState.enemy.hp < 50 || battleState.turnCount > 3) {
+                    battleLog.textContent = '💔 姆卡斯卡爆发了强大的力量……五人被击倒……';
+                    battleHint.textContent = '💀 战败……';
+                    battleEndTurn.disabled = true;
+                    battleLocked = true;
+                    setTimeout(function() {
+                        endDesertBattle(false);
+                    }, 1500);
+                    return;
+                }
+
+                drawCardsDesert(2);
+                selectedAlly = null;
+                battleState.phase = 'select';
+                battleLocked = false;
+                battleHint.textContent = '👆 点击选择一名角色';
+                battleEndTurn.disabled = true;
+                renderBattleUI();
+                renderHand();
+
+                if (battleState.hand.length === 0) {
+                    drawCardsDesert(3);
+                    renderHand();
+                }
+            }
+
+            function endDesertBattle(victory) {
+                isInBattle = false;
+                battleContainer.classList.remove('show');
+                battleLocked = true;
+
+                playDesertMusic();
+
+                storyLines.innerHTML = '';
+                var div = document.createElement('div');
+                div.className = 'story-line';
+                div.textContent = '林小宁｜（倒下）又……失败了……';
+                storyLines.appendChild(div);
+                requestAnimationFrame(function() { div.classList.add('show'); });
+
+                var div2 = document.createElement('div');
+                div2.className = 'story-line';
+                div2.textContent = '伙伴们的呼喊声越来越远……';
+                storyLines.appendChild(div2);
+                setTimeout(function() {
+                    requestAnimationFrame(function() { div2.classList.add('show'); });
+                }, 600);
+
+                setTimeout(function() {
+                    // 触发死亡转场（索引13-14，由JS控制）
+                    triggerDeathTransition();
+                }, 1200);
+
+                storyActive = false;
+                currentPart = 12;
+            }
+
+            // ============================================================
+            //  现实战斗（可胜战）
+            // ============================================================
+            function startRealBattle(enemyName) {
+                isInBattle = true;
+                isRealBattle = true;
+                isDesertBattle = false;
+                storyActive = false;
+                battleContainer.classList.add('show');
+                playBattleMusic();
+
+                currentEnemyName = enemyName || '小胖';
+
+                battleState = {
+                    allies: BATTLE_DATA_REAL.allies.map(function(a) { return { ...a, hp: a.maxHp, shield: 0 }; }),
+                    enemies: BATTLE_DATA_REAL.enemy.map(function(e) { return { ...e, hp: e.maxHp, shield: 0 }; }),
+                    enemy: { id: 'xiaopang', name: '小胖', maxHp: 30, hp: 30, shield: 0, attack: 5, icon: 'xiaopang' },
+                    deck: shuffle([].concat(BATTLE_DATA_REAL.cards)),
+                    hand: [],
+                    turn: 0,
+                    phase: 'card',
+                    isReal: true,
+                    currentEnemyIndex: 0
+                };
+                battleState.allEnemies = battleState.enemies.map(function(e) { return { ...e }; });
+                selectedAlly = null;
+                battleLocked = false;
+
+                var imgUrl = getImageUrl(currentPart);
+                if (imgUrl) {
+                    loadBackgroundSmart(imgUrl, function(success) {
+                        if (success) {
+                            battleBg.style.backgroundImage = 'url("' + imgUrl + '")';
+                            battleBg.style.backgroundSize = 'cover';
+                            battleBg.style.backgroundPosition = 'center';
+                        } else {
+                            battleBg.style.backgroundImage = 'linear-gradient(145deg, #1a2233, #0b0e14)';
+                        }
+                    });
+                } else {
+                    battleBg.style.backgroundImage = 'linear-gradient(145deg, #1a2233, #0b0e14)';
+                }
+
+                renderRealBattleUI();
+                battleLog.textContent = '⚔️ 小胖三人围了上来！';
+                battleHint.textContent = '👆 点击选择卡牌';
+                battleEndTurn.disabled = true;
+
+                drawCardsReal(3);
+                renderHand();
+                battleState.phase = 'card';
+            }
+
+            function drawCardsReal(count) {
+                var deck = battleState.deck;
+                for (var i = 0; i < count; i++) {
+                    if (deck.length === 0) {
+                        battleState.deck = shuffle([].concat(BATTLE_DATA_REAL.cards));
+                        deck = battleState.deck;
+                    }
+                    if (deck.length > 0) {
+                        var card = deck.pop();
+                        battleState.hand.push(card);
+                    }
+                }
+                if (battleState.hand.length > 6) {
+                    battleState.hand = battleState.hand.slice(0, 6);
+                }
+            }
+
+            function renderRealBattleUI() {
+                battleAllies.innerHTML = '';
+                battleState.allies.forEach(function(ally, idx) {
+                    var unit = document.createElement('div');
+                    unit.className = 'battle-unit';
+                    unit.dataset.idx = idx;
+                    var hpPct = (ally.hp / ally.maxHp * 100);
+                    var hpClass = hpPct < 30 ? 'low' : '';
+                    var shieldText = ally.shield > 0 ? ' 🛡️' + ally.shield : '';
+                    var avatarUrl = getAvatarUrl(ally.icon);
+                    unit.innerHTML =
+                        `
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <img src="${avatarUrl || ''}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid rgba(100,200,255,0.2);" />
+                            <div>
+                                <div class="unit-name">${ally.name}</div>
+                                <div class="unit-hp">❤️ ${ally.hp}/${ally.maxHp}${shieldText}
+                                    <span class="hp-bar"><span class="hp-fill ${hpClass}" style="width:${hpPct}%"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    battleAllies.appendChild(unit);
+                });
+
+                var enemiesHTML = '';
+                battleState.enemies.forEach(function(enemy, idx) {
+                    var eHpPct = (enemy.hp / enemy.maxHp * 100);
+                    var eHpClass = eHpPct < 30 ? 'low' : '';
+                    var eShieldText = enemy.shield > 0 ? ' 🛡️' + enemy.shield : '';
+                    var enemyAvatar = getAvatarUrl(enemy.icon);
+                    enemiesHTML +=
+                        `
+                        <div class="battle-unit enemy-unit" style="text-align:left;margin-bottom:4px;">
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <img src="${enemyAvatar || ''}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #ff6b6b;" />
+                                <div>
+                                    <div class="unit-name">👹 ${enemy.name}</div>
+                                    <div class="unit-hp">❤️ ${enemy.hp}/${enemy.maxHp}${eShieldText}
+                                        <span class="hp-bar"><span class="hp-fill enemy-hp ${eHpClass}" style="width:${eHpPct}%"></span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                battleEnemy.innerHTML = enemiesHTML;
+                battleState.allEnemies = battleState.enemies.map(function(e) { return { ...e }; });
+            }
+
+            function playRealCard(idx) {
+                if (battleLocked) return;
+                if (battleState.phase !== 'card') return;
+
+                var card = battleState.hand[idx];
+                if (!card) return;
+                var ally = battleState.allies[0];
+                if (ally.hp <= 0) return;
+
+                battleLocked = true;
+                battleState.phase = 'enemy';
+
+                storyScene.classList.add('battle-shake');
+                characterLayer.classList.add('battle-sway');
+                setTimeout(function() {
+                    storyScene.classList.remove('battle-shake');
+                    characterLayer.classList.remove('battle-sway');
+                }, 1200);
+
+                battleState.hand.splice(idx, 1);
+
+                var logMsg = ally.name + ' 使用了「' + card.name + '」';
+                var dmg = 0,
+                    heal = 0,
+                    shield = 0;
+
+                var targetEnemy = null;
+                var minHp = 999;
+                battleState.enemies.forEach(function(e) {
+                    if (e.hp > 0 && e.hp < minHp) {
+                        minHp = e.hp;
+                        targetEnemy = e;
+                    }
+                });
+                if (!targetEnemy) {
+                    targetEnemy = battleState.enemies[0];
+                }
+
+                if (card.type === 'attack' && card.damage) {
+                    dmg = card.damage;
+                    var actualDmg = Math.max(0, dmg - (targetEnemy.shield || 0));
+                    if (targetEnemy.shield > 0) {
+                        var absorbed = Math.min(targetEnemy.shield, dmg);
+                        targetEnemy.shield -= absorbed;
+                        logMsg += '，对 ' + targetEnemy.name + ' 造成 ' + actualDmg + ' 点伤害 (护盾吸收 ' + absorbed +
+                        ')';
+                    } else {
+                        logMsg += '，对 ' + targetEnemy.name + ' 造成 ' + actualDmg + ' 点伤害';
+                    }
+                    targetEnemy.hp = Math.max(0, targetEnemy.hp - actualDmg);
+                } else if (card.type === 'defend' && card.shield) {
+                    shield = card.shield;
+                    ally.shield = (ally.shield || 0) + shield;
+                    logMsg += '，获得 ' + shield + ' 点护盾';
+                } else if (card.type === 'heal' && card.heal) {
+                    heal = card.heal;
+                    var actualHeal = Math.min(heal, ally.maxHp - ally.hp);
+                    ally.hp = Math.min(ally.maxHp, ally.hp + heal);
+                    logMsg += '，恢复 ' + actualHeal + ' 点生命';
+                }
+
+                battleLog.textContent = logMsg;
+                renderRealBattleUI();
+
+                var allDead = battleState.enemies.every(function(e) { return e.hp <= 0; });
+                if (allDead) {
+                    battleLog.textContent = '🎉 小胖三人被打跑了！';
+                    battleHint.textContent = '✨ 胜利！';
+                    battleEndTurn.disabled = true;
+                    battleLocked = true;
+                    setTimeout(function() {
+                        endRealBattle(true);
+                    }, 1500);
+                    return;
+                }
+
+                setTimeout(function() {
+                    realEnemyTurn();
+                }, 800);
+            }
+
+            function realEnemyTurn() {
+                var aliveEnemies = battleState.enemies.filter(function(e) { return e.hp > 0; });
+                if (aliveEnemies.length === 0) {
+                    endRealBattle(true);
+                    return;
+                }
+
+                var ally = battleState.allies[0];
+                if (ally.hp <= 0) {
+                    endRealBattle(false);
+                    return;
+                }
+
+                aliveEnemies.forEach(function(enemy) {
+                    if (ally.hp <= 0) return;
+                    var baseDmg = enemy.attack + Math.floor(Math.random() * 2) - 1;
+                    var actualDmg = Math.max(1, baseDmg);
+                    if (ally.shield > 0) {
+                        var absorbed = Math.min(ally.shield, actualDmg);
+                        ally.shield -= absorbed;
+                        actualDmg -= absorbed;
+                        if (ally.shield < 0) ally.shield = 0;
+                    }
+                    ally.hp = Math.max(0, ally.hp - actualDmg);
+                    battleLog.textContent = '👊 ' + enemy.name + ' 攻击，造成 ' + actualDmg + ' 点伤害';
+                });
+
+                renderRealBattleUI();
+
+                if (ally.hp <= 0) {
+                    battleLog.textContent = '💔 林小宁倒下了……';
+                    battleHint.textContent = '💀 败北……';
+                    battleEndTurn.disabled = true;
+                    battleLocked = true;
+                    setTimeout(function() {
+                        endRealBattle(false);
+                    }, 1500);
+                    return;
+                }
+
+                drawCardsReal(1);
+                battleLocked = false;
+                battleState.phase = 'card';
+                battleHint.textContent = '🎴 选择一张卡牌反击！';
+                battleEndTurn.disabled = true;
+                renderHand();
+
+                if (battleState.hand.length === 0) {
+                    drawCardsReal(2);
+                    renderHand();
+                }
+            }
+
+            function endRealBattle(victory) {
+                isInBattle = false;
+                battleContainer.classList.remove('show');
+                battleLocked = true;
+
+                playRealMusic();
+
+                // 战斗结束后跳到下一个非战斗段落
+                if (currentPart < CHAPTER_DATA.length - 1) {
+                    var next = currentPart + 1;
+                    while (next < CHAPTER_DATA.length && (CHAPTER_DATA[next].isBattle || CHAPTER_DATA[next].isBattleStart ||
+                            CHAPTER_DATA[next].isBattleEnd)) {
+                        next++;
+                    }
+                    if (next < CHAPTER_DATA.length) {
+                        currentPart = next;
+                    } else {
+                        currentPart = CHAPTER_DATA.length - 1;
+                    }
+                    currentLine = 0;
+                    storyActive = true;
+                    showPart(currentPart);
+                    updateButtonState();
+                    updateProgress();
+                }
+            }
+
+            // ============================================================
+            //  事件绑定
+            // ============================================================
+            storyPanel.addEventListener('click', function(e) {
+                if (e.target.closest('#story-ctrl-btn')) return;
+                if (e.target.closest('#return-menu-btn')) return;
+                if (e.target.closest('.choice-btn')) return;
+                if (awaitingChoice) return;
+                if (isInBattle) return;
+                handleContinue();
+            });
+
+            storyCtrlBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (isInBattle) return;
+                handleContinue();
+            });
+
+            returnMenuBtn.addEventListener('click', function() {
+                stopAllAudio();
+                window.location.href = 'index.html?from=chapter';
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === ' ' || e.key === 'Space') {
+                    e.preventDefault();
+                    if (storyActive && !awaitingChoice && !isInBattle) {
+                        handleContinue();
+                    }
+                }
+                if (e.key === 'Enter') {
+                    if (returnMenuBtn.classList.contains('show')) {
+                        returnMenuBtn.click();
+                    }
+                }
+            });
+
+            // ============================================================
+            //  初始化
+            // ============================================================
+            console.log('🌙 第四章 · 梦醒时分 (40张图片完整版)');
+            console.log('📸 图片: photo4/001.png ~ 040.png');
+            console.log('🎵 沙漠: 005 | 沙漠战斗: 003 | 现实: 006 | 主殿: 007');
+            console.log('✅ 按照40张图片索引表精确配置');
+
+            initAudio();
+
+            preloadImages().then(function() {
+                startStory();
+            });
+
+            setTimeout(function() {
+                if (!storyActive) {
+                    console.warn('图片加载超时，强制启动');
+                    startStory();
+                }
+            }, 5000);
+
+        })();
+    </script>
+</body>
+</html>
