@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <title>云端之上 · 白墨瑟尔城</title>
+    <style>
+        /* ============================================================
+                   全局重置
+                   ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Noto Serif SC', 'PingFang SC', 'Microsoft YaHei', serif;
+            background: #0b0e14;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ============================================================
+                   启动屏 (视频)
+                   ============================================================ */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            background: #0b0e14;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            transition: opacity 0.9s ease;
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        #splash-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #splash-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #sound-tip {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            letter-spacing: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 28px;
+            border-radius: 40px;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+            white-space: nowrap;
+        }
+
+        #sound-tip.hidden {
+            opacity: 0;
+        }
+
+        .splash-placeholder {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.20);
+            font-size: 18px;
+            letter-spacing: 6px;
+            font-weight: 300;
+            pointer-events: none;
+        }
+
+        /* ============================================================
+                   主菜单
+                   ============================================================ */
+        #main-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 900;
+            background-image: url("image/001.png");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1.2s ease 0.3s, visibility 1.2s ease 0.3s;
+            padding: 30px;
+            text-align: center;
+            background-color: #0b0e14;
+        }
+
+        #main-menu.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #main-menu::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 26, 0.45);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            z-index: 0;
+        }
+
+        .menu-content {
+            position: relative;
+            z-index: 1;
+            max-width: 520px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .menu-title {
+            font-size: 42px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+            letter-spacing: 8px;
+            margin-bottom: 6px;
+        }
+
+        .menu-subtitle {
+            font-size: 18px;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.75);
+            letter-spacing: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            padding-top: 14px;
+            margin-bottom: 44px;
+        }
+
+        #chapter-select-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .chapter-btn {
+            padding: 14px 32px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 60px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Noto Serif SC', 'PingFang SC', serif;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            letter-spacing: 4px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            min-width: 140px;
+            text-align: center;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .chapter-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.03);
+        }
+
+        .chapter-btn .icon {
+            display: block;
+            font-size: 28px;
+            margin-bottom: 2px;
+        }
+
+        .chapter-btn .sub {
+            display: block;
+            font-size: 12px;
+            font-weight: 300;
+            opacity: 0.5;
+            margin-top: 4px;
+            letter-spacing: 2px;
+        }
+
+        /* 金边样式（第三章） */
+        .chapter-btn.gold {
+            border-color: rgba(255, 215, 0, 0.15);
+            background: rgba(255, 215, 0, 0.04);
+            color: #ffd54f;
+        }
+
+        .chapter-btn.gold:hover {
+            border-color: rgba(255, 215, 0, 0.3);
+            background: rgba(255, 215, 0, 0.08);
+        }
+
+        .chapter-btn.gold .sub {
+            color: rgba(255, 215, 0, 0.4);
+        }
+
+        /* 星蓝样式（第四章） */
+        .chapter-btn.star {
+            border-color: rgba(138, 43, 226, 0.2);
+            background: rgba(138, 43, 226, 0.05);
+            color: #c084fc;
+        }
+
+        .chapter-btn.star:hover {
+            border-color: rgba(138, 43, 226, 0.4);
+            background: rgba(138, 43, 226, 0.1);
+        }
+
+        .chapter-btn.star .sub {
+            color: rgba(138, 43, 226, 0.4);
+        }
+
+        /* 快速返回提示 */
+        #quick-return-tip {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 901;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 12px;
+            letter-spacing: 3px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        #quick-return-tip.show {
+            opacity: 1;
+        }
+
+        /* ============================================================
+                   响应式
+                   ============================================================ */
+        @media (max-width: 600px) {
+            .menu-title {
+                font-size: 32px;
+                letter-spacing: 6px;
+            }
+            .menu-subtitle {
+                font-size: 15px;
+                letter-spacing: 4px;
+                padding-top: 10px;
+                margin-bottom: 32px;
+            }
+            .chapter-btn {
+                padding: 12px 24px;
+                font-size: 15px;
+                min-width: 120px;
+                flex: 0 1 auto;
+            }
+            .chapter-btn .icon {
+                font-size: 24px;
+            }
+            #chapter-select-btns {
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .menu-title {
+                font-size: 26px;
+                letter-spacing: 4px;
+            }
+            .menu-subtitle {
+                font-size: 13px;
+                letter-spacing: 3px;
+            }
+            .chapter-btn {
+                padding: 10px 18px;
+                font-size: 13px;
+                min-width: 100px;
+            }
+            .chapter-btn .icon {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    启动屏
+    ============================================================ -->
+    <div id="splash-screen">
+        <video id="splash-video" src="video/splash.mp4" playsinline autoplay preload="auto" muted></video>
+        <div id="sound-tip">🔊 点击画面开启声音</div>
+        <div class="splash-placeholder">☁️ 加载中 ...</div>
+    </div>
+
+    <!-- ============================================================
+    主菜单
+    ============================================================ -->
+    <div id="main-menu">
+        <div class="menu-content">
+            <div class="menu-title">云端之上</div>
+            <div class="menu-subtitle">白墨瑟尔城 · 序章</div>
+            <div id="chapter-select-btns">
+                <!-- 第一章 -->
+                <button class="chapter-btn" onclick="loadChapter(1)">
+                    <span class="icon">🌙</span> 第一章
+                    <span class="sub">觉醒 · 古城</span>
+                </button>
+                <!-- 第二章 -->
+                <button class="chapter-btn" onclick="loadChapter(2)">
+                    <span class="icon">🌿</span> 第二章
+                    <span class="sub">地球 · 雨林</span>
+                </button>
+                <!-- 第三章（金色边框） -->
+                <button class="chapter-btn gold" onclick="loadChapter(3)">
+                    <span class="icon">🏜️</span> 第三章
+                    <span class="sub">沙漠 · 试炼</span>
+                </button>
+                <!-- 第四章（星蓝边框，新增） -->
+                <button class="chapter-btn star" onclick="loadChapter(4)">
+                    <span class="icon">🌌</span> 第四章
+                    <span class="sub">星辰 · 归途</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速返回提示 -->
+    <div id="quick-return-tip">✦ 来自云端的归途 ✦</div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            //  DOM 引用
+            // ============================================================
+            const splashScreen = document.getElementById('splash-screen');
+            const splashVideo = document.getElementById('splash-video');
+            const soundTip = document.getElementById('sound-tip');
+            const mainMenu = document.getElementById('main-menu');
+            const quickTip = document.getElementById('quick-return-tip');
+
+            // ============================================================
+            //  音频控制（主菜单音乐 001.mp3）
+            // ============================================================
+            let menuAudio = null;
+
+            function initMenuAudio() {
+                try {
+                    menuAudio = new Audio('music/001.mp3');
+                    menuAudio.loop = true;
+                    menuAudio.volume = 0.5;
+                } catch (e) {
+                    console.warn('主菜单音乐初始化失败:', e);
+                }
+            }
+
+            function playMenuMusic() {
+                if (!menuAudio) {
+                    initMenuAudio();
+                }
+                try {
+                    if (menuAudio && menuAudio.paused) {
+                        menuAudio.currentTime = 0;
+                        menuAudio.play().catch(function(e) {
+                            console.warn('主菜单音乐播放失败:', e);
+                        });
+                    }
+                } catch (e) {
+                    console.warn('主菜单音乐播放失败:', e);
+                }
+            }
+
+            function stopMenuMusic() {
+                try {
+                    if (menuAudio && !menuAudio.paused) {
+                        menuAudio.pause();
+                        menuAudio.currentTime = 0;
+                    }
+                } catch (e) {}
+            }
+
+            // ============================================================
+            //  检测是否从章节返回（带参数 ?from=chapter）
+            // ============================================================
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromChapter = urlParams.get('from');
+
+            // 如果是从章节返回，直接跳过视频，显示菜单并播放音乐
+            const shouldPlaySplash = (fromChapter !== 'chapter');
+
+            console.log('🔍 启动模式:', shouldPlaySplash ? '完整启动（播放动画）' : '快速返回（跳过动画）');
+
+            // ============================================================
+            //  视频声音控制
+            // ============================================================
+            let soundEnabled = false;
+            let menuShown = false;
+            let splashClicked = false;
+
+            function enableSound() {
+                if (soundEnabled) return;
+                splashVideo.muted = false;
+                soundEnabled = true;
+                soundTip.classList.add('hidden');
+                splashVideo.play().catch(function() {});
+                console.log('🔊 声音已开启，视频继续播放');
+            }
+
+            // 点击启动画面 → 只开启声音，不跳过视频
+            splashScreen.addEventListener('click', function(e) {
+                if (!soundEnabled) {
+                    enableSound();
+                }
+                splashClicked = true;
+            });
+
+            // ============================================================
+            //  显示主菜单（并播放音乐）
+            // ============================================================
+            function showMainMenu(showTip) {
+                if (menuShown) return;
+                menuShown = true;
+
+                // 隐藏启动屏
+                splashScreen.classList.add('hidden');
+                splashVideo.pause();
+
+                // 如果是从章节返回，显示快速提示
+                if (showTip) {
+                    quickTip.classList.add('show');
+                    setTimeout(function() {
+                        quickTip.classList.remove('show');
+                    }, 2000);
+                }
+
+                setTimeout(function() {
+                    mainMenu.classList.add('show');
+                    // 播放主菜单音乐
+                    playMenuMusic();
+                }, 200);
+            }
+
+            // ============================================================
+            //  如果是从章节返回 → 直接显示主菜单（跳过动画）
+            // ============================================================
+            if (!shouldPlaySplash) {
+                // 直接从章节返回，隐藏启动屏，显示主菜单
+                splashScreen.style.opacity = '0';
+                splashScreen.style.pointerEvents = 'none';
+                // 延迟一点点显示主菜单，带提示
+                setTimeout(function() {
+                    showMainMenu(true);
+                }, 300);
+                // 停止视频
+                splashVideo.pause();
+                // 移除点击监听
+                splashScreen.removeEventListener('click', enableSound);
+            } else {
+                // ============================================================
+                //  正常启动流程（播放动画）
+                // ============================================================
+                splashVideo.addEventListener('ended', function() {
+                    showMainMenu(false);
+                });
+
+                splashVideo.addEventListener('error', function() {
+                    console.warn('⚠️ 视频加载失败，进入主菜单');
+                    setTimeout(function() {
+                        showMainMenu(false);
+                    }, 1000);
+                });
+
+                // 安全后备：12秒超时
+                setTimeout(function() {
+                    if (!menuShown) {
+                        console.warn('⏱️ 12秒超时，强制进入主菜单');
+                        showMainMenu(false);
+                    }
+                }, 12000);
+            }
+
+            // ============================================================
+            //  加载章节（跳转时带上 ?from=chapter 参数）
+            // ============================================================
+            window.loadChapter = function(num) {
+                let target = '';
+                if (num === 1) {
+                    target = 'chapter1.html';
+                } else if (num === 2) {
+                    target = 'chapter2.html';
+                } else if (num === 3) {
+                    target = 'chapter3.html';
+                } else if (num === 4) {
+                    target = 'chapter4.html';
+                } else {
+                    return;
+                }
+                // 停止主菜单音乐
+                stopMenuMusic();
+                // 跳转时带上 from=chapter 参数，告诉主页面是从章节返回
+                window.location.href = target + '?from=chapter';
+            };
+
+            // ============================================================
+            //  检测主菜单背景图
+            // ============================================================
+            const menuBgTest = new Image();
+            menuBgTest.onerror = function() {
+                console.warn('⚠️ 主菜单背景图 image/001.png 加载失败，使用纯色背景');
+                mainMenu.style.background = 'linear-gradient(145deg, #1a2233, #0b0e14)';
+            };
+            menuBgTest.src = 'image/001.png';
+
+            // ============================================================
+            //  初始化音频
+            // ============================================================
+            initMenuAudio();
+
+            console.log('🌙 云端之上 · 主入口');
+            if (shouldPlaySplash) {
+                console.log('📌 播放启动动画 → 自动进入主菜单');
+            } else {
+                console.log('📌 从章节返回 → 跳过动画，直接进入主菜单');
+            }
+            console.log('📌 点击章节按钮 → 跳转至对应章节（带返回标记）');
+            console.log('🎵 主菜单音乐: music/001.mp3');
+
+        })();
+    </script>
+</body>
+</html>
